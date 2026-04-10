@@ -21,37 +21,42 @@ const THEMES = [
   {
     id: "general",
     name: "釣り（総合）",
-    bgColor: "#cfc4b6",
-    accentColor: "#c0392b",
+    bgColor: "#d4c89e",
+    accentColor: "#8b1a1a",
     title: "HOOK & TACKLE",
+    subtitle: "America's Favorite Fishing Magazine",
   },
   {
     id: "bass",
     name: "ブラックバス系",
-    bgColor: "#97a292",
-    accentColor: "#d35400",
+    bgColor: "#3b5e3a",
+    accentColor: "#d4a017",
     title: "BASS STRIKE",
+    subtitle: "The Largemouth Authority Since 1962",
   },
   {
     id: "trout",
     name: "トラウト系",
-    bgColor: "#d8ab8a",
-    accentColor: "#2c3e50",
+    bgColor: "#c2a67a",
+    accentColor: "#2e4a3e",
     title: "TROUT & STREAM",
+    subtitle: "For The Dedicated Fly Fisherman",
   },
   {
     id: "shore",
     name: "ソルトウォーター（ショア）",
-    bgColor: "#c3c6b8",
-    accentColor: "#2980b9",
+    bgColor: "#1e3a5f",
+    accentColor: "#c9a84c",
     title: "SALT ANGLER",
+    subtitle: "Surf, Pier & Jetty Fishing Journal",
   },
   {
     id: "offshore",
     name: "ソルトウォーター（オフショア）",
-    bgColor: "#899fb2",
-    accentColor: "#e74c3c",
+    bgColor: "#4a1c1c",
+    accentColor: "#d4a54a",
     title: "OCEAN GAME",
+    subtitle: "Big Game Fishing Worldwide",
   },
 ];
 
@@ -326,12 +331,21 @@ function App() {
     const shuffled = [...HEADLINES].sort(() => 0.5 - Math.random());
     const layoutPattern = Math.floor(Math.random() * 5); // 0〜4 の5パターン
 
+    // 年代に合わせたヴィンテージ価格
+    const prices = year < 1970
+      ? ["35¢", "40¢", "50¢", "25¢"]
+      : year < 1980
+        ? ["75¢", "85¢", "$1.00", "60¢"]
+        : ["$1.25", "$1.50", "$1.75", "$1.95"];
+    const price = prices[Math.floor(Math.random() * prices.length)];
+
     setMagazineConfig({
       year,
       vol,
       month,
       headlines: shuffled.slice(0, 4),
       layoutPattern,
+      price,
     });
   }, []);
 
@@ -535,15 +549,23 @@ function App() {
     ctx.fillStyle = selectedTheme.bgColor;
     ctx.fillRect(0, 0, targetWidth, targetHeight);
 
+    // 紙の黄ばみ・経年劣化感をオーバーレイ
     ctx.save();
-    ctx.globalAlpha = 0.05;
+    ctx.globalAlpha = 0.08;
+    ctx.fillStyle = "#a08040";
+    ctx.fillRect(0, 0, targetWidth, targetHeight);
+    ctx.restore();
+
+    // 粗い紙テクスチャ（ノイズを強化）
+    ctx.save();
+    ctx.globalAlpha = 0.07;
     ctx.fillStyle = "#000";
-    for (let i = 0; i < 5000; i++) {
+    for (let i = 0; i < 8000; i++) {
       ctx.beginPath();
       ctx.arc(
         Math.random() * targetWidth,
         Math.random() * targetHeight,
-        Math.random() * 2,
+        Math.random() * 2.5,
         0,
         Math.PI * 2,
       );
@@ -551,30 +573,111 @@ function App() {
     }
     ctx.restore();
 
-    // 2. 巨大なタイトルロゴを描画（前景の「後ろ」）
+    // 細い横線（印刷ムラ風）
+    ctx.save();
+    ctx.globalAlpha = 0.03;
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 0.5;
+    for (let y = 0; y < targetHeight; y += 3 + Math.random() * 4) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(targetWidth, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // ビネット効果（四隅の暗がり）
+    ctx.save();
+    const vGrad = ctx.createRadialGradient(
+      targetWidth / 2, targetHeight / 2,
+      targetWidth * 0.3,
+      targetWidth / 2, targetHeight / 2,
+      targetWidth * 0.9,
+    );
+    vGrad.addColorStop(0, "rgba(0,0,0,0)");
+    vGrad.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.fillStyle = vGrad;
+    ctx.fillRect(0, 0, targetWidth, targetHeight);
+    ctx.restore();
+
+    // 2. 上部の装飾ライン
+    ctx.save();
+    ctx.strokeStyle = selectedTheme.accentColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(30, 18);
+    ctx.lineTo(targetWidth - 30, 18);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(30, 23);
+    ctx.lineTo(targetWidth - 30, 23);
+    ctx.stroke();
+    ctx.restore();
+
+    // 3. ヘッダー情報（EST. / VOL. / 価格）
+    ctx.textBaseline = "top";
+    if (magazineConfig) {
+      ctx.fillStyle = "#ffffff";
+      ctx.font = 'bold 18px Georgia, "Times New Roman", serif';
+      ctx.textAlign = "left";
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(
+        `EST. ${magazineConfig.year}  ·  VOL. ${magazineConfig.vol}  ·  ${magazineConfig.month} ISSUE`,
+        40,
+        30,
+      );
+
+      // 価格表記（右上）
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#ffffff";
+      ctx.font = 'bold 22px Georgia, "Times New Roman", serif';
+      ctx.fillText(magazineConfig.price, targetWidth - 40, 28);
+      ctx.shadowColor = "transparent";
+    }
+
+    // 4. タイトルロゴ下の装飾ライン
+    ctx.save();
+    ctx.strokeStyle = selectedTheme.accentColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(30, 52);
+    ctx.lineTo(targetWidth - 30, 52);
+    ctx.stroke();
+    ctx.restore();
+
+    // 5. 巨大なタイトルロゴを描画（前景の「後ろ」）
     ctx.fillStyle = selectedTheme.accentColor;
-    ctx.font = '900 130px Impact, "Arial Black", sans-serif';
+    ctx.font = '900 120px Georgia, "Times New Roman", serif';
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.shadowColor = "rgba(0,0,0,0.5)";
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetY = 5;
+    ctx.shadowColor = "rgba(0,0,0,0.6)";
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 4;
 
-    // Canvasの第4引数 (maxWidth=740px) を指定し、どんなに長いタイトルでも絶対に左右30pxの余白内に縮小して収める
-    ctx.fillText(selectedTheme.title, targetWidth / 2, 50, targetWidth - 60);
+    ctx.fillText(selectedTheme.title, targetWidth / 2, 58, targetWidth - 60);
     ctx.shadowColor = "transparent";
 
-    // 3. その他背面のヘッダーテキスト
+    // 6. サブタイトル（タイトルロゴの下）
     ctx.fillStyle = "#ffffff";
-    ctx.font = 'bold 24px "Courier New", Courier, monospace';
-    ctx.textAlign = "left";
-    if (magazineConfig) {
-      ctx.fillText(
-        `EST. ${magazineConfig.year} | VOL.${magazineConfig.vol} / ${magazineConfig.month} ISSUE`,
-        40,
-        25,
-      );
-    }
+    ctx.font = 'italic 18px Georgia, "Times New Roman", serif';
+    ctx.textAlign = "center";
+    ctx.shadowColor = "rgba(0,0,0,0.5)";
+    ctx.shadowBlur = 4;
+    ctx.fillText(selectedTheme.subtitle, targetWidth / 2, 180);
+    ctx.shadowColor = "transparent";
+
+    // サブタイトル下の装飾ライン
+    ctx.save();
+    ctx.strokeStyle = "#ffffff";
+    ctx.globalAlpha = 0.4;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(targetWidth * 0.25, 205);
+    ctx.lineTo(targetWidth * 0.75, 205);
+    ctx.stroke();
+    ctx.restore();
 
     // 4. 前景（人物＋魚）の描画（タイトルロゴの上に乗せる立体感）
     if (workerStatus === "complete" && personFishImage) {
@@ -609,7 +712,7 @@ function App() {
       ctx.shadowBlur = 12;
       ctx.textBaseline = "top";
 
-      // 共通描画コンポーネント（ヘルパー関数）
+      // 共通描画コンポーネント（ヘルパー関数）— レトロセリフ体ベース
       const drawStandard = (
         item: any,
         x: number,
@@ -618,16 +721,17 @@ function App() {
         italicAccent = false,
       ) => {
         ctx.textAlign = align;
-        ctx.shadowColor = "rgba(0,0,0,0.8)";
-        ctx.shadowBlur = 12;
+        ctx.shadowColor = "rgba(0,0,0,0.7)";
+        ctx.shadowBlur = 8;
         ctx.fillStyle = selectedTheme.accentColor;
-        ctx.font = `${italicAccent ? "italic " : ""}900 36px Impact, sans-serif`;
+        ctx.font = `${italicAccent ? "italic " : ""}bold 34px Georgia, "Times New Roman", serif`;
         ctx.fillText(`${item.accent} ${item.title}`, x, y);
         ctx.fillStyle = "#ffffff";
-        ctx.font = 'bold 20px "Times New Roman", Times, serif';
-        ctx.fillText(item.sub1, x, y + 40);
+        ctx.font = '20px Georgia, "Times New Roman", serif';
+        ctx.fillText(item.sub1, x, y + 38);
         ctx.fillStyle = "#dddddd";
-        ctx.fillText(item.sub2, x, y + 65);
+        ctx.font = 'italic 18px Georgia, "Times New Roman", serif';
+        ctx.fillText(item.sub2, x, y + 62);
       };
 
       const drawCallout = (
@@ -637,53 +741,54 @@ function App() {
         align: "left" | "right",
       ) => {
         ctx.textAlign = align;
-        ctx.shadowColor = "rgba(0,0,0,0.8)";
-        ctx.shadowBlur = 12;
+        ctx.shadowColor = "rgba(0,0,0,0.7)";
+        ctx.shadowBlur = 8;
         ctx.fillStyle = "#ffffff";
-        ctx.font = "900 45px Impact, sans-serif";
+        ctx.font = 'bold 42px Georgia, "Times New Roman", serif';
         ctx.fillText(item.accent, x, y);
         ctx.fillStyle = selectedTheme.accentColor;
-        ctx.fillText(item.title, x, y + 45);
+        ctx.font = 'bold italic 42px Georgia, "Times New Roman", serif';
+        ctx.fillText(item.title, x, y + 44);
         ctx.fillStyle = "#ffffff";
-        ctx.font = 'italic 20px "Times New Roman", Times, serif';
-        ctx.fillText(`- ${item.sub1} -`, x, y + 100);
+        ctx.font = 'italic 19px Georgia, "Times New Roman", serif';
+        ctx.fillText(`— ${item.sub1} —`, x, y + 96);
       };
 
       const drawRibbon = (item: any, by: number, align: "left" | "right") => {
         ctx.textAlign = align;
-        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
         ctx.fillStyle = selectedTheme.accentColor;
 
         if (align === "right") {
-          ctx.fillRect(targetWidth - 420, by, 420, 55);
+          ctx.fillRect(targetWidth - 420, by, 420, 50);
           ctx.shadowColor = "transparent";
-          ctx.fillStyle = "#000000";
-          ctx.font = "900 42px Impact, sans-serif";
+          ctx.fillStyle = "#ffffff";
+          ctx.font = 'bold 36px Georgia, "Times New Roman", serif';
           ctx.fillText(
             `${item.accent} ${item.title}`,
             targetWidth - 40,
-            by + 5,
+            by + 6,
           );
-          ctx.shadowColor = "rgba(0,0,0,0.8)";
+          ctx.shadowColor = "rgba(0,0,0,0.7)";
           ctx.fillStyle = "#ffffff";
-          ctx.font = 'bold 22px "Courier New", Courier, monospace';
-          ctx.fillText(item.sub1, targetWidth - 40, by + 65);
+          ctx.font = '20px Georgia, "Times New Roman", serif';
+          ctx.fillText(item.sub1, targetWidth - 40, by + 60);
           ctx.fillStyle = "#dddddd";
-          ctx.font = 'bold 18px "Times New Roman", Times, serif';
-          ctx.fillText(item.sub2, targetWidth - 40, by + 90);
+          ctx.font = 'italic 17px Georgia, "Times New Roman", serif';
+          ctx.fillText(item.sub2, targetWidth - 40, by + 84);
         } else {
-          ctx.fillRect(0, by, 420, 55);
+          ctx.fillRect(0, by, 420, 50);
           ctx.shadowColor = "transparent";
-          ctx.fillStyle = "#000000";
-          ctx.font = "900 42px Impact, sans-serif";
-          ctx.fillText(`${item.accent} ${item.title}`, 40, by + 5);
-          ctx.shadowColor = "rgba(0,0,0,0.8)";
           ctx.fillStyle = "#ffffff";
-          ctx.font = 'bold 22px "Courier New", Courier, monospace';
-          ctx.fillText(item.sub1, 40, by + 65);
+          ctx.font = 'bold 36px Georgia, "Times New Roman", serif';
+          ctx.fillText(`${item.accent} ${item.title}`, 40, by + 6);
+          ctx.shadowColor = "rgba(0,0,0,0.7)";
+          ctx.fillStyle = "#ffffff";
+          ctx.font = '20px Georgia, "Times New Roman", serif';
+          ctx.fillText(item.sub1, 40, by + 60);
           ctx.fillStyle = "#dddddd";
-          ctx.font = 'bold 18px "Times New Roman", Times, serif';
-          ctx.fillText(item.sub2, 40, by + 90);
+          ctx.font = 'italic 17px Georgia, "Times New Roman", serif';
+          ctx.fillText(item.sub2, 40, by + 84);
         }
       };
 
@@ -738,7 +843,7 @@ function App() {
 
         let barcodeX = 40;
         let barcodeY = targetHeight - boxHeight - 30;
-        if (layoutPattern === 1 || layoutPattern === 3 || layoutPattern === 4) {
+        if (layoutPattern === 1 || layoutPattern === 3) {
           barcodeX = targetWidth - boxWidth - 40;
         }
 
