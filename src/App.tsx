@@ -12,6 +12,7 @@ import {
 // @ts-ignore
 import { Fish as FishIcon } from "lucide-react";
 import { removeBackground, Config } from "@imgly/background-removal";
+import heic2any from "heic2any";
 
 const THEMES = [
   {
@@ -333,27 +334,79 @@ function App() {
     e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
-  // 画像アップロード処理
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result && typeof event.target.result === "string") {
-          setImageSrc(event.target.result);
-          setWorkerStatus("idle");
-          setPersonFishImage(null);
-          setScale(1.0);
-          setOffsetY(0);
-          setProgressMsg("");
+  // HEIC/HEIFファイルかどうかを判定
+  const isHeic = (file: File): boolean => {
+    const name = file.name.toLowerCase();
+    return (
+      file.type === "image/heic" ||
+      file.type === "image/heif" ||
+      name.endsWith(".heic") ||
+      name.endsWith(".heif")
+    );
+  };
 
+  // データURLから画像をセットする共通処理
+  const loadImageFromDataUrl = (dataUrl: string) => {
+    setImageSrc(dataUrl);
+    setWorkerStatus("idle");
+    setPersonFishImage(null);
+    setScale(1.0);
+    setOffsetY(0);
+    setProgressMsg("");
+
+    const img = new Image();
+    img.onload = () => setOriginalImage(img);
+    img.src = dataUrl;
+  };
+
+  // 画像アップロード処理
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (isHeic(file)) {
+      setProgressMsg("HEIC画像を変換中...");
+      setWorkerStatus("processing");
+      try {
+        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.92 });
+        const jpeg = Array.isArray(blob) ? blob[0] : blob;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result && typeof event.target.result === "string") {
+            loadImageFromDataUrl(event.target.result);
+          }
+        };
+        reader.readAsDataURL(jpeg);
+      } catch (err: any) {
+        // ブラウザが既に読める形式の場合、canvasでJPEGに再エンコードする
+        if (err?.code === 1) {
+          const url = URL.createObjectURL(file);
           const img = new Image();
-          img.onload = () => setOriginalImage(img);
-          img.src = event.target.result;
+          img.onload = () => {
+            const cvs = document.createElement("canvas");
+            cvs.width = img.naturalWidth;
+            cvs.height = img.naturalHeight;
+            cvs.getContext("2d")!.drawImage(img, 0, 0);
+            URL.revokeObjectURL(url);
+            loadImageFromDataUrl(cvs.toDataURL("image/jpeg", 0.92));
+          };
+          img.src = url;
+          return;
         }
-      };
-      reader.readAsDataURL(file);
+        console.error(err);
+        setWorkerStatus("error");
+        setProgressMsg("HEIC変換に失敗しました");
+      }
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result && typeof event.target.result === "string") {
+        loadImageFromDataUrl(event.target.result);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const startExtraction = async () => {
@@ -728,12 +781,12 @@ function App() {
                   <p className="text-lg font-bold text-white mb-1">釣果写真をアップロード</p>
                   <p className="text-sm text-slate-500">人物入り・横持ちの写真が最適</p>
                 </div>
-                <span className="text-xs text-slate-600 mt-2">JPG / PNG / WebP</span>
+                <span className="text-xs text-slate-600 mt-2">JPG / PNG / WebP / HEIC</span>
               </div>
               <input
                 type="file"
                 className="hidden"
-                accept="image/jpeg, image/png, image/webp"
+                accept="image/jpeg, image/png, image/webp, image/heic, image/heif, .heic, .heif"
                 onChange={handleImageUpload}
               />
             </label>
