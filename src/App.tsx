@@ -277,6 +277,39 @@ function App() {
     img.src = barcodeUrl;
   }, []);
 
+  // Service Worker登録（PWAインストール条件を満たすため）
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
+
+  // Android: beforeinstallpromptイベントをキャプチャ
+  const deferredPromptRef = useRef<any>(null);
+  const [showAndroidInstall, setShowAndroidInstall] = useState(false);
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      deferredPromptRef.current = e;
+      const dismissed = localStorage.getItem("install-banner-dismissed");
+      if (!dismissed) {
+        setShowAndroidInstall(true);
+      }
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleAndroidInstall = async () => {
+    const prompt = deferredPromptRef.current;
+    if (!prompt) return;
+    prompt.prompt();
+    await prompt.userChoice;
+    deferredPromptRef.current = null;
+    setShowAndroidInstall(false);
+    localStorage.setItem("install-banner-dismissed", String(Date.now()));
+  };
+
   // iOS Safariインストール誘導バナー
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   useEffect(() => {
@@ -931,6 +964,23 @@ function App() {
               下部の共有ボタンから「ホーム画面に追加」でアプリとして使えます
             </p>
             <button onClick={dismissInstallBanner} className="text-indigo-400 hover:text-white shrink-0 p-1">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Android: ホーム画面追加の誘導バナー */}
+      {showAndroidInstall && (
+        <div className="bg-indigo-950/80 backdrop-blur-sm border-b border-indigo-500/20 animate-fade-in">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+            <p className="text-xs text-indigo-200 flex-1">
+              アプリとしてインストールできます
+            </p>
+            <button onClick={handleAndroidInstall} className="text-xs font-bold text-indigo-300 hover:text-white shrink-0 px-3 py-1 rounded bg-indigo-500/20 hover:bg-indigo-500/40 transition-colors">
+              追加
+            </button>
+            <button onClick={() => { setShowAndroidInstall(false); localStorage.setItem("install-banner-dismissed", String(Date.now())); }} className="text-indigo-400 hover:text-white shrink-0 p-1">
               <X className="w-4 h-4" />
             </button>
           </div>
