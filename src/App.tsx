@@ -193,6 +193,19 @@ function App() {
 
     ctx.clearRect(0, 0, targetWidth, targetHeight);
 
+    // [0] 抽出完了前のプレビュー表示（テーマや雑誌UIは処理が終わるまで隠す）
+    if (workerStatus !== 'complete') {
+        ctx.fillStyle = '#0f172a'; // slate-900
+        ctx.fillRect(0, 0, targetWidth, targetHeight);
+        ctx.save();
+        const baseScale = Math.min(targetWidth / originalImage.width, targetHeight / originalImage.height) * 0.9;
+        const w = originalImage.width * baseScale;
+        const h = originalImage.height * baseScale;
+        ctx.drawImage(originalImage, (targetWidth - w)/2, (targetHeight - h)/2, w, h);
+        ctx.restore();
+        return; // 描画をこれで終了
+    }
+
     // 1. 背景の描画 (レトロカラーのソリッド背景)
     ctx.fillStyle = selectedTheme.bgColor;
     ctx.fillRect(0, 0, targetWidth, targetHeight);
@@ -248,14 +261,6 @@ function App() {
         const drawY = (targetHeight - drawHeight) + offsetY;
         
         ctx.drawImage(personFishImage, drawX, drawY, drawWidth, drawHeight);
-        ctx.restore();
-    } else {
-        // 未加工時は元の写真をとりあえず真ん中に置く（UIプレビュー用）
-        ctx.save();
-        const baseScale = Math.min(targetWidth / originalImage.width, targetHeight / originalImage.height) * 0.9;
-        const w = originalImage.width * baseScale;
-        const h = originalImage.height * baseScale;
-        ctx.drawImage(originalImage, (targetWidth - w)/2, (targetHeight - h)/2, w, h);
         ctx.restore();
     }
 
@@ -450,7 +455,10 @@ function App() {
         <div className="grid lg:grid-cols-12 gap-8 items-start flex-1 w-full">
           {/* LEFT COLUMN: Preview Canvas */}
           <div className="lg:col-span-8 w-full flex flex-col items-center">
-            <div className={`relative w-full rounded-2xl md:rounded-3xl border ${imageSrc ? 'border-slate-700/50 bg-[#111827]/60' : 'border-dashed border-slate-600 hover:border-indigo-400/60 hover:bg-indigo-900/10'} p-4 md:p-8 flex items-center justify-center overflow-hidden glass-panel group min-h-[600px]`}>
+            <div 
+              className={`relative w-full rounded-2xl md:rounded-3xl border ${imageSrc ? 'border-slate-700/50 bg-[#0f172a]' : 'border-dashed border-slate-600 hover:border-indigo-400/60 hover:bg-indigo-900/10'} flex items-center justify-center overflow-hidden glass-panel group shadow-2xl`}
+              style={{ maxWidth: '600px', aspectRatio: '800/1050' }}
+            >
               {!imageSrc ? (
                  <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer absolute inset-0 z-10 transition-transform duration-300 group-hover:scale-[1.02]">
                  <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
@@ -462,10 +470,10 @@ function App() {
                </label>
               ) : (
                 <div className="relative w-full h-full flex flex-col items-center justify-center animate-fade-in pointer-events-auto">
-                  <div className="relative w-full flex justify-center">
+                  <div className="relative w-full h-full flex justify-center items-center">
                     <canvas 
                       ref={canvasRef} 
-                      className={`rounded-xl drop-shadow-2xl shadow-indigo-900/20 touch-none ${isDone ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                      className={`w-full h-full object-cover touch-none ${isDone ? 'cursor-grab active:cursor-grabbing' : ''}`}
                       onPointerDown={handlePointerDown}
                       onPointerMove={handlePointerMove}
                       onPointerUp={handlePointerUp}
