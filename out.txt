@@ -1,0 +1,21 @@
+Loading Segformer...
+Running segmentation...
+Label: sky, Score: null, Pixels: 1292396
+Label: floor, Score: null, Pixels: 534
+Label: tree, Score: null, Pixels: 264
+Label: road, Score: null, Pixels: 13755
+Label: grass, Score: null, Pixels: 131290
+Label: sidewalk, Score: null, Pixels: 383745
+Label: person, Score: null, Pixels: 779526
+Label: earth, Score: null, Pixels: 36539
+Label: mountain, Score: null, Pixels: 1
+Label: plant, Score: null, Pixels: 24155
+Label: water, Score: null, Pixels: 28804
+Label: sea, Score: null, Pixels: 363425
+Label: fence, Score: null, Pixels: 2603
+Label: railing, Score: null, Pixels: 688
+Label: sand, Score: null, Pixels: 72137
+Label: bridge, Score: null, Pixels: 1314
+Label: boat, Score: null, Pixels: 2
+Label: airplane, Score: null, Pixels: 1954
+Label: pier, Score: null, Pixels: 12596
