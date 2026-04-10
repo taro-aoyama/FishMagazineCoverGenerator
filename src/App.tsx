@@ -8,6 +8,8 @@ import {
   Move,
   ZoomIn,
   Shuffle,
+  Share,
+  X,
 } from "lucide-react";
 // @ts-ignore
 import { Fish as FishIcon } from "lucide-react";
@@ -269,6 +271,30 @@ function App() {
     img.onload = () => setBarcodeImage(img);
     img.src = barcodeUrl;
   }, []);
+
+  // iOS Safariインストール誘導バナー
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  useEffect(() => {
+    const isIos = /iPhone|iPad/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches
+      || (navigator as any).standalone === true;
+    const now = Date.now();
+    const lastVisit = localStorage.getItem("last-visit");
+    const hasLongGap = lastVisit && (now - Number(lastVisit)) > 7 * 24 * 60 * 60 * 1000;
+    if (hasLongGap) {
+      localStorage.removeItem("install-banner-dismissed");
+    }
+    localStorage.setItem("last-visit", String(now));
+    const dismissed = localStorage.getItem("install-banner-dismissed");
+    if (isIos && !isStandalone && !dismissed) {
+      setShowInstallBanner(true);
+    }
+  }, []);
+
+  const dismissInstallBanner = () => {
+    setShowInstallBanner(false);
+    localStorage.setItem("install-banner-dismissed", String(Date.now()));
+  };
 
   // ドラッグ操作関連のステート
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -787,6 +813,21 @@ function App() {
           </h1>
         </div>
       </header>
+
+      {/* iOS Safari: ホーム画面追加の誘導バナー */}
+      {showInstallBanner && (
+        <div className="bg-indigo-950/80 backdrop-blur-sm border-b border-indigo-500/20 animate-fade-in">
+          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+            <p className="text-xs text-indigo-200 flex-1">
+              <Share className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
+              下部の共有ボタンから「ホーム画面に追加」でアプリとして使えます
+            </p>
+            <button onClick={dismissInstallBanner} className="text-indigo-400 hover:text-white shrink-0 p-1">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-6xl mx-auto px-4 py-6 md:py-10">
         {/* アップロード前: 中央配置のアップロードエリア */}
