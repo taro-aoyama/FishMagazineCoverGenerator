@@ -10,7 +10,6 @@ import {
   Shuffle,
   Share,
   X,
-  ShieldCheck,
 } from "lucide-react";
 // @ts-ignore
 import { Fish as FishIcon } from "lucide-react";
@@ -1013,10 +1012,6 @@ function App() {
                 onChange={handleImageUpload}
               />
             </label>
-            <div className="flex items-center gap-2 mt-4 text-slate-500 text-xs">
-              <ShieldCheck className="w-4 h-4 shrink-0" />
-              <span>すべての処理はお使いの端末内で完結します。画像がサーバーに送信されることはありません。</span>
-            </div>
           </div>
         )}
 
