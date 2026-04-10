@@ -760,7 +760,7 @@ function App() {
             <FishIcon className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-base md:text-lg font-bold text-slate-100 tracking-tight">
-            釣り雑誌の表紙風ジェネレーター
+            釣り雑誌の表紙風画像ジェネレーター
           </h1>
         </div>
       </header>
