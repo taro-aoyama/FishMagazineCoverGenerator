@@ -908,7 +908,10 @@ function App() {
   return (
     <div className="min-h-screen bg-[#0A0F1C] text-slate-200 font-sans selection:bg-indigo-500/30">
       {/* ヘッダー — コンパクト */}
-      <header className="sticky top-0 z-30 bg-[#0A0F1C]/80 backdrop-blur-lg border-b border-white/[0.06]">
+      <header
+        className="sticky top-0 z-30 bg-[#0A0F1C]/80 backdrop-blur-lg border-b border-white/[0.06]"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
         <div className="max-w-6xl mx-auto flex items-center gap-2.5 px-4 py-3 md:py-4">
           <div className="p-1.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
             <FishIcon className="w-5 h-5 text-white" />
