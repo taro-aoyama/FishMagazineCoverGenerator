@@ -13,6 +13,7 @@ import {
 import { Fish as FishIcon } from "lucide-react";
 import { removeBackground, Config } from "@imgly/background-removal";
 import heic2any from "heic2any";
+import barcodeUrl from "./assets/10912071.png";
 
 const THEMES = [
   {
@@ -258,6 +259,14 @@ function App() {
   );
   const [personFishImage, setPersonFishImage] =
     useState<HTMLImageElement | null>(null);
+
+  // バーコード画像の事前読み込み
+  const [barcodeImage, setBarcodeImage] = useState<HTMLImageElement | null>(null);
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => setBarcodeImage(img);
+    img.src = barcodeUrl;
+  }, []);
 
   // ドラッグ操作関連のステート
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -689,43 +698,25 @@ function App() {
           break;
       }
 
-      // [4] バーコードの描画（UPC風の正方形に近いプロポーション）
-      const drawBarcode = (x: number, y: number) => {
+      // [4] バーコード画像の描画
+      if (barcodeImage) {
+        const boxWidth = 105;
+        const boxHeight = boxWidth * (barcodeImage.naturalHeight / barcodeImage.naturalWidth);
+
+        let barcodeX = 40;
+        let barcodeY = targetHeight - boxHeight - 30;
+        if (layoutPattern === 1 || layoutPattern === 3) {
+          barcodeX = targetWidth - boxWidth - 40;
+        } else if (layoutPattern === 4) {
+          barcodeX = targetWidth / 2 - boxWidth / 2;
+        }
+
         ctx.save();
         ctx.shadowColor = "rgba(0,0,0,0.5)";
         ctx.shadowBlur = 10;
-        ctx.fillStyle = "#ffffff";
-        const boxWidth = 105;
-        const boxHeight = 75;
-        ctx.fillRect(x, y, boxWidth, boxHeight);
-
-        ctx.shadowColor = "transparent";
-        ctx.fillStyle = "#000000";
-        let cursor = x + 8;
-        // 幅を縮めて高さを持たせたバーコード
-        const bars = [2, 1, 2, 1, 1, 2, 3, 1, 2, 1, 1, 3, 1, 2, 1, 2, 1, 3];
-        bars.forEach((w, i) => {
-          ctx.fillRect(cursor, y + 8, w * 1.5, 45);
-          cursor += w * 1.5 + (i % 3 === 0 ? 2.5 : 1.5);
-        });
-
-        ctx.font = 'bold 11px "Courier New", Courier, monospace';
-        ctx.textAlign = "center";
-        // 中央揃えにして白枠からのハミ出しを極力防止
-        ctx.fillText("0 74470 56219 8", x + boxWidth / 2, y + 66);
+        ctx.drawImage(barcodeImage, barcodeX, barcodeY, boxWidth, boxHeight);
         ctx.restore();
-      };
-
-      // レイアウトごとの空きスペースに合わせてバーコードを配置
-      let barcodeX = 40;
-      let barcodeY = targetHeight - 105; // 縦長になった分上げる
-      if (layoutPattern === 1 || layoutPattern === 3) {
-        barcodeX = targetWidth - 145; // 105px幅+余白
-      } else if (layoutPattern === 4) {
-        barcodeX = targetWidth / 2 - 52.5; // 中央配置
       }
-
-      drawBarcode(barcodeX, barcodeY);
     }
   }, [
     originalImage,
@@ -737,6 +728,7 @@ function App() {
     workerStatus,
     imageSrc,
     magazineConfig,
+    barcodeImage,
   ]);
 
   useEffect(() => {
