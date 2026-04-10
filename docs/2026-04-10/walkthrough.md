@@ -1,6 +1,6 @@
-# FishTale AI 開発完了 ウォークスルー
+# FishMagazineCoverGenerator 開発完了 ウォークスルー
 
-ブラウザ上で「魚」をAIで自動検出し、サイズを自由に変更できるクライアントサイドのWebアプリケーション「FishTale AI」の実装が全て完了しました。
+ブラウザ上で「魚」をAIで自動検出し、サイズを自由に変更できるクライアントサイドのWebアプリケーション「FishMagazineCoverGenerator」の実装が全て完了しました。
 
 ## 実装された機能の詳細
 - **サーバーフリーのAI処理**: `Transformers.js` と `clipseg-rd64-refined` （ゼロショットセグメンテーションモデル）を Web Workerに実装。メインスレッド（UIの描画処理など）をブロックせずに、ユーザーのブラウザ・デバイスパワーだけで完全ローカルに推論を完了させます（初回のみモデルファイルのダウンロードが発生します）。
@@ -14,7 +14,7 @@
 ローカル環境でプロジェクトを起動し、動作を確認するには以下のコマンドを実行してください。
 
 ```bash
-cd /Users/t_aoyama/Documents/GitHub/FishTaleAI
+cd /Users/t_aoyama/Documents/GitHub/FishMagazineCoverGenerator
 npm run dev
 ```
 
