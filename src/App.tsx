@@ -740,12 +740,35 @@ function App() {
     drawCanvas();
   }, [drawCanvas]);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!canvasRef.current) return;
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvasRef.current!.toBlob(resolve, "image/png", 1.0)
+    );
+    if (!blob) return;
+
+    const file = new File([blob], `fish-magazine-cover-${Date.now()}.png`, { type: "image/png" });
+
+    // モバイル端末でShare APIが使える場合はシェアシート経由で「画像を保存」を提供
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    if (isMobile && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        return;
+      } catch {
+        // キャンセルされた場合は何もしない
+        return;
+      }
+    }
+
+    // フォールバック: 通常のダウンロード
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.download = `fish-magazine-cover-${Date.now()}.png`;
-    link.href = canvasRef.current.toDataURL("image/png", 1.0);
+    link.download = file.name;
+    link.href = url;
     link.click();
+    URL.revokeObjectURL(url);
   };
 
   const isWorking = workerStatus === "processing";
