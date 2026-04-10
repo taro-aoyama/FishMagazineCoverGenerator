@@ -10,6 +10,7 @@ import {
   Shuffle,
   Share,
   X,
+  ShieldCheck,
 } from "lucide-react";
 // @ts-ignore
 import { Fish as FishIcon } from "lucide-react";
@@ -1012,6 +1013,10 @@ function App() {
                 onChange={handleImageUpload}
               />
             </label>
+            <div className="flex items-center gap-2 mt-4 text-slate-500 text-xs">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span>すべての処理はお使いの端末内で完結します。画像がサーバーに送信されることはありません。</span>
+            </div>
           </div>
         )}
 
@@ -1082,6 +1087,28 @@ function App() {
               ) : (
                 /* 編集パネル群 */
                 <div className="flex flex-col gap-4 animate-fade-in">
+                  {/* サイズ調整 */}
+                  <div className="glass-panel rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <ZoomIn className="w-3.5 h-3.5" />
+                        サイズ
+                      </h3>
+                      <span className="text-xs font-mono text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded">
+                        {Math.round(scale * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.0"
+                      step="0.05"
+                      value={scale}
+                      onChange={(e) => setScale(parseFloat(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+
                   {/* テーマ選択 */}
                   <div className="glass-panel rounded-xl p-4">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
@@ -1106,28 +1133,6 @@ function App() {
                         </button>
                       ))}
                     </div>
-                  </div>
-
-                  {/* サイズ調整 */}
-                  <div className="glass-panel rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                        <ZoomIn className="w-3.5 h-3.5" />
-                        サイズ
-                      </h3>
-                      <span className="text-xs font-mono text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded">
-                        {Math.round(scale * 100)}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.5"
-                      max="2.0"
-                      step="0.05"
-                      value={scale}
-                      onChange={(e) => setScale(parseFloat(e.target.value))}
-                      className="w-full"
-                    />
                   </div>
 
                   {/* アクションボタン群 */}
