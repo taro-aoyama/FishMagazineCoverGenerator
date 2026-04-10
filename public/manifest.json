@@ -1,6 +1,6 @@
 {
-  "name": "釣り雑誌の表紙風ジェネレーター",
-  "short_name": "釣り雑誌",
+  "name": "釣り雑誌の表紙風画像ジェネレーター",
+  "short_name": "釣り雑誌画像",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0F1C",
