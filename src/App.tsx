@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { UploadCloud, Download, Loader2, Image as ImageIcon, LayoutTemplate, Move, ZoomIn } from 'lucide-react';
+import { UploadCloud, Download, Loader2, Image as ImageIcon, LayoutTemplate, Move, ZoomIn, Shuffle } from 'lucide-react';
 // @ts-ignore
 import { Fish as FishIcon } from 'lucide-react';
 import { removeBackground, Config } from '@imgly/background-removal';
@@ -12,23 +12,106 @@ const THEMES = [
   { id: 'offshore', name: 'ソルトウォーター（オフショア）', bgColor: '#899fb2', accentColor: '#e74c3c', title: "OCEAN GAME" },
 ];
 
+// ランダムに選ばれる特集記事のマスターリスト（30種類に増強！）
+const HEADLINES = [
+  { accent: 'SECRET', title: 'LOCATIONS', sub1: 'Expert Tackle Guide', sub2: 'Monster Tactics' },
+  { accent: 'LUNKER', title: 'HUNTER', sub1: 'The 10lb Club', sub2: 'Bait & Switch' },
+  { accent: 'PRO', title: 'SECRETS', sub1: 'Tournament Winning Lures', sub2: 'Read The Water' },
+  { accent: 'WILD', title: 'CATCH', sub1: 'Action On Topwater', sub2: 'Night Fishing Guide' },
+  { accent: 'FIGHT', title: 'CLUB', sub1: 'Heavy Tackle Basics', sub2: 'Never Lose A Big One' },
+  { accent: 'LURE', title: 'MAKING', sub1: 'DIY Custom Baits', sub2: 'Color Theory Explained' },
+  { accent: 'TROPHY', title: 'WALL', sub1: 'Record Breaking Catches', sub2: 'How To Mount Your Fish' },
+  { accent: 'SPRING', title: 'FEVER', sub1: 'Pre-Spawn Patterns', sub2: 'Jigging For Monsters' },
+  { accent: 'MASTER', title: 'CLASS', sub1: 'Knot Tying Essentials', sub2: 'Hook Selection Guide' },
+  { accent: 'DEEP', title: 'WATER', sub1: 'Sonar Tactics 101', sub2: 'Finding The Drop-Offs' },
+  { accent: 'SURE', title: 'FIRE', sub1: 'Top 10 Plastic Baits', sub2: 'Rigging Like A Pro' },
+  { accent: 'WEEKEND', title: 'WARRIOR', sub1: 'Quick Escape Spots', sub2: 'Family Fishing Gear' },
+  { accent: 'TOUGH', title: 'BITE', sub1: 'Finesse Techniques', sub2: 'Downsizing Your Lures' },
+  { accent: 'RIVER', title: 'MONSTERS', sub1: 'Current Strategies', sub2: 'Casting The Eddies' },
+  { accent: 'GEAR', title: 'GUIDE', sub1: 'New Reels Tested', sub2: 'Rods For Every Budget' },
+  { accent: 'BOAT', title: 'BUYER', sub1: 'Jon Boats To Bass Boats', sub2: 'Maintenance Tips' },
+  { accent: 'SHORE', title: 'POUNDER', sub1: 'Bank Fishing Secrets', sub2: 'Walking The Coast' },
+  { accent: 'FLY', title: 'FISHING', sub1: 'Matching The Hatch', sub2: 'Perfecting Your Cast' },
+  { accent: 'KAYAK', title: 'TACTICS', sub1: 'Stealth Approaches', sub2: 'Rigging Your Yak' },
+  { accent: 'BIG', title: 'SWIMBAITS', sub1: 'Throwing The Matt', sub2: 'Commit To The Bite' },
+  { accent: 'ICE', title: 'OUT', sub1: 'Early Season Action', sub2: 'Cold Water Basics' },
+  { accent: 'FROGGING', title: 'SEASON', sub1: 'Slop Fishing 101', sub2: 'Heavy Braid Needs' },
+  { accent: 'FALL', title: 'FEED', sub1: 'Chasing Bait Balls', sub2: 'Crankbait Mastery' },
+  { accent: 'NIGHT', title: 'STALKER', sub1: 'Darkness Strategies', sub2: 'Black Lure Magic' },
+  { accent: 'SURVIVAL', title: 'KIT', sub1: 'What To Bring', sub2: 'First Aid For Hookups' },
+  { accent: 'CATCH &', title: 'RELEASE', sub1: 'Fish Care Secrets', sub2: 'Livewell Management' },
+  { accent: 'URBAN', title: 'ANGLER', sub1: 'City Pond Secrets', sub2: 'Concrete Jungle Fish' },
+  { accent: 'WEATHER', title: 'WATCH', sub1: 'Fishing The Fronts', sub2: 'Barometric Pressure' },
+  { accent: 'KIDS', title: 'CORNER', sub1: 'Taking Youth Fishing', sub2: 'Simple Bobber Rigs' },
+  { accent: 'LEGENDS', title: 'OF BASS', sub1: 'Interviews With Pros', sub2: 'Classic Tournaments' },
+];
+
 function App() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   
   // AI状態
   const [workerStatus, setWorkerStatus] = useState<'idle' | 'processing' | 'complete' | 'error'>('idle');
   const [progressMsg, setProgressMsg] = useState<string>('');
-  
+  const [magazineConfig, setMagazineConfig] = useState<any>(null);
+
   // キャンバス・画像状態
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [scale, setScale] = useState<number>(0.95);
   const [offsetY, setOffsetY] = useState<number>(0);
+  const [offsetX, setOffsetX] = useState<number>(0);
   const [selectedThemeId, setSelectedThemeId] = useState<string>('general');
   
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [personFishImage, setPersonFishImage] = useState<HTMLImageElement | null>(null);
 
+  // ドラッグ操作関連のステート
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragStartRef = useRef<{ x: number, y: number } | null>(null);
+  const offsetStartRef = useRef<{ x: number, y: number } | null>(null);
+
   const selectedTheme = THEMES.find(t => t.id === selectedThemeId) || THEMES[0];
+
+  // ランダムレイアウトの生成
+  const shuffleLayout = useCallback(() => {
+    const year = Math.floor(Math.random() * (1998 - 1960 + 1)) + 1960;
+    const vol = Math.floor(Math.random() * 99) + 1;
+    const month = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][Math.floor(Math.random() * 12)];
+    
+    const shuffled = [...HEADLINES].sort(() => 0.5 - Math.random());
+    const layoutPattern = Math.floor(Math.random() * 5); // 0〜4 の5パターン
+    
+    setMagazineConfig({ year, vol, month, headlines: shuffled.slice(0, 4), layoutPattern });
+  }, []);
+
+  // ドラッグ操作ロジック
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (workerStatus !== 'complete') return;
+    setIsDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    offsetStartRef.current = { x: offsetX, y: offsetY };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDragging || !dragStartRef.current || !offsetStartRef.current || !canvasRef.current) return;
+    
+    // Canvasの表示DOMサイズを取得し、内部描画サイズ(800x1050)への変換比率を計算
+    const rect = canvasRef.current.getBoundingClientRect();
+    const ratioX = 800 / rect.width;
+    const ratioY = 1050 / rect.height;
+
+    // 変位を内部座標スケールに変換
+    const deltaX = (e.clientX - dragStartRef.current.x) * ratioX;
+    const deltaY = (e.clientY - dragStartRef.current.y) * ratioY;
+
+    setOffsetX(offsetStartRef.current.x + deltaX);
+    setOffsetY(offsetStartRef.current.y + deltaY);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    setIsDragging(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
 
   // 画像アップロード処理
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,6 +157,8 @@ function App() {
       fgImg.onload = () => {
         setPersonFishImage(fgImg);
         setWorkerStatus('complete');
+        // 初回抽出時にもレイアウトシードを生成する
+        shuffleLayout();
       };
       fgImg.src = url;
 
@@ -82,20 +167,6 @@ function App() {
       setWorkerStatus('error');
       setProgressMsg(error?.message || '抽出中にエラーが発生しました');
     }
-  };
-
-  const drawBarcode = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(x, y, 120, 60);
-    ctx.fillStyle = '#000';
-    for(let i=0; i<30; i++) {
-        const thickness = Math.random() * 4 + 1;
-        const gap = Math.random() * 4 + 2;
-        ctx.fillRect(x + 5 + i*(thickness+gap), y + 5, thickness, 40);
-        if (x + 5 + i*(thickness+gap) > x + 110) break;
-    }
-    ctx.font = 'bold 12px monospace';
-    ctx.fillText('978-4-06-258273-0', x + 5, y + 55);
   };
 
   // 雑誌風レイアウト描画
@@ -153,7 +224,9 @@ function App() {
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 24px "Courier New", Courier, monospace';
     ctx.textAlign = 'left';
-    ctx.fillText('EST. 1968 | VOL.34 / SPECIAL ISSUE', 40, 25);
+    if (magazineConfig) {
+      ctx.fillText(`EST. ${magazineConfig.year} | VOL.${magazineConfig.vol} / ${magazineConfig.month} ISSUE`, 40, 25);
+    }
 
     // 4. 前景（人物＋魚）の描画（タイトルロゴの上に乗せる立体感）
     if (workerStatus === 'complete' && personFishImage) {
@@ -170,8 +243,8 @@ function App() {
         const drawHeight = baseHeight * scale;
         const drawWidth = drawHeight * (personFishImage.width / personFishImage.height);
         
-        const drawX = (targetWidth - drawWidth) / 2;
-        // 基本は下揃えにしつつ、offsetYで微調整
+        // 中央ベース位置に、ユーザーのドラッグによる offsetX / offsetY を加算
+        const drawX = (targetWidth - drawWidth) / 2 + offsetX;
         const drawY = (targetHeight - drawHeight) + offsetY;
         
         ctx.drawImage(personFishImage, drawX, drawY, drawWidth, drawHeight);
@@ -187,39 +260,160 @@ function App() {
     }
 
     // 5. 雑誌の手前側にくるキャッチコピー等の描画
-    if (workerStatus === 'complete') {
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffffff';
+    if (workerStatus === 'complete' && magazineConfig) {
+      const { headlines: hl, layoutPattern } = magazineConfig;
       
-      // サイドの大見出し
-      ctx.font = '900 60px Impact, sans-serif';
-      ctx.shadowColor = 'rgba(0,0,0,0.7)';
-      ctx.shadowBlur = 10;
-      
-      ctx.fillText('SECRET', 40, targetHeight / 2 - 80);
-      ctx.fillStyle = selectedTheme.accentColor;
-      ctx.fillText('LOCATIONS', 40, targetHeight / 2 - 20);
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 24px "Times New Roman", Times, serif';
-      ctx.fillText('Expert Tackle Guide', 40, targetHeight / 2 + 30);
-      ctx.fillText('Monster Tactics', 40, targetHeight / 2 + 65);
+      // 影を強めに設定して文字の視認性を高める
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 12;
+      ctx.textBaseline = 'top';
 
-      // 右下の特集
-      ctx.textAlign = 'right';
-      ctx.font = 'italic 900 45px Impact, sans-serif';
-      ctx.fillStyle = selectedTheme.accentColor;
-      ctx.fillText('TROPHY', targetWidth - 40, targetHeight * 0.7);
-      
-      ctx.font = 'bold 22px "Times New Roman", Times, serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('The Ultimate Catch Of The Month', targetWidth - 40, targetHeight * 0.7 + 40);
+      // 共通描画コンポーネント（ヘルパー関数）
+      const drawStandard = (item: any, x: number, y: number, align: 'left' | 'right', italicAccent = false) => {
+          ctx.textAlign = align;
+          ctx.shadowColor = 'rgba(0,0,0,0.8)';
+          ctx.shadowBlur = 12;
+          ctx.fillStyle = selectedTheme.accentColor;
+          ctx.font = `${italicAccent ? 'italic ' : ''}900 36px Impact, sans-serif`;
+          ctx.fillText(`${item.accent} ${item.title}`, x, y);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 20px "Times New Roman", Times, serif';
+          ctx.fillText(item.sub1, x, y + 40);
+          ctx.fillStyle = '#dddddd';
+          ctx.fillText(item.sub2, x, y + 65);
+      };
 
-      // バーコード
-      drawBarcode(ctx, targetWidth - 160, targetHeight - 80);
+      const drawCallout = (item: any, x: number, y: number, align: 'left' | 'right') => {
+          ctx.textAlign = align;
+          ctx.shadowColor = 'rgba(0,0,0,0.8)';
+          ctx.shadowBlur = 12;
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '900 45px Impact, sans-serif';
+          ctx.fillText(item.accent, x, y);
+          ctx.fillStyle = selectedTheme.accentColor;
+          ctx.fillText(item.title, x, y + 45);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'italic 20px "Times New Roman", Times, serif';
+          ctx.fillText(`- ${item.sub1} -`, x, y + 100);
+      };
+
+      const drawRibbon = (item: any, by: number, align: 'left' | 'right') => {
+          ctx.textAlign = align;
+          ctx.shadowColor = 'rgba(0,0,0,0.5)';
+          ctx.fillStyle = selectedTheme.accentColor;
+          
+          if (align === 'right') {
+            ctx.fillRect(targetWidth - 420, by, 420, 55);
+            ctx.shadowColor = 'transparent';
+            ctx.fillStyle = '#000000';
+            ctx.font = '900 42px Impact, sans-serif';
+            ctx.fillText(`${item.accent} ${item.title}`, targetWidth - 40, by + 5);
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 22px "Courier New", Courier, monospace';
+            ctx.fillText(item.sub1, targetWidth - 40, by + 65);
+            ctx.fillStyle = '#dddddd';
+            ctx.font = 'bold 18px "Times New Roman", Times, serif';
+            ctx.fillText(item.sub2, targetWidth - 40, by + 90);
+          } else {
+            ctx.fillRect(0, by, 420, 55);
+            ctx.shadowColor = 'transparent';
+            ctx.fillStyle = '#000000';
+            ctx.font = '900 42px Impact, sans-serif';
+            ctx.fillText(`${item.accent} ${item.title}`, 40, by + 5);
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 22px "Courier New", Courier, monospace';
+            ctx.fillText(item.sub1, 40, by + 65);
+            ctx.fillStyle = '#dddddd';
+            ctx.font = 'bold 18px "Times New Roman", Times, serif';
+            ctx.fillText(item.sub2, 40, by + 90);
+          }
+      };
+
+      // 5つのダイナミック・レイアウトパターン
+      switch (layoutPattern) {
+        case 0:
+          // Pattern 0: 王道レイアウト (左スタック＆右リボン)
+          drawStandard(hl[0], 40, 200, 'left', true);
+          drawStandard(hl[1], 40, 320, 'left');
+          drawCallout(hl[2], targetWidth - 40, 300, 'right');
+          drawRibbon(hl[3], targetHeight * 0.75, 'right');
+          break;
+          
+        case 1:
+          // Pattern 1: 右スタック＆左リボン (Reverse)
+          drawStandard(hl[0], targetWidth - 40, 250, 'right', true);
+          drawStandard(hl[1], targetWidth - 40, 400, 'right');
+          drawCallout(hl[2], 40, 480, 'left');
+          drawRibbon(hl[3], targetHeight * 0.65, 'left');
+          break;
+          
+        case 2:
+          // Pattern 2: スカベンジャー (四隅に異なる形状を配置、最下部にワイドリボン)
+          drawStandard(hl[0], 40, 220, 'left', true);
+          drawCallout(hl[1], targetWidth - 40, 220, 'right');
+          drawStandard(hl[2], 40, targetHeight * 0.65, 'left');
+          drawRibbon(hl[3], targetHeight * 0.82, 'right');
+          break;
+          
+        case 3:
+          // Pattern 3: デフト・ウォール (左側に記事を集中させ、右空間を空ける)
+          drawStandard(hl[0], 40, 250, 'left', true);
+          drawStandard(hl[1], 40, 400, 'left');
+          drawRibbon(hl[2], targetHeight * 0.7, 'left');
+          drawCallout(hl[3], targetWidth - 40, 200, 'right'); // 右側はワンポイントのみ
+          break;
+          
+        case 4:
+          // Pattern 4: 天地強調 (中央をがっつり空けて被写体を目立たせる)
+          drawCallout(hl[0], 40, 200, 'left');
+          drawCallout(hl[1], targetWidth - 40, 200, 'right');
+          drawRibbon(hl[2], targetHeight * 0.65, 'left');
+          drawRibbon(hl[3], targetHeight * 0.85, 'right');
+          break;
+      }
+
+      // [4] バーコードの描画（UPC風の正方形に近いプロポーション）
+      const drawBarcode = (x: number, y: number) => {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#ffffff';
+        const boxWidth = 105;
+        const boxHeight = 75;
+        ctx.fillRect(x, y, boxWidth, boxHeight);
+        
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = '#000000';
+        let cursor = x + 8;
+        // 幅を縮めて高さを持たせたバーコード
+        const bars = [2,1,2,1,1,2,3,1,2,1,1,3,1,2,1,2,1,3];
+        bars.forEach((w, i) => {
+            ctx.fillRect(cursor, y + 8, w * 1.5, 45);
+            cursor += (w * 1.5) + (i % 3 === 0 ? 2.5 : 1.5);
+        });
+        
+        ctx.font = 'bold 11px "Courier New", Courier, monospace';
+        ctx.textAlign = 'center';
+        // 中央揃えにして白枠からのハミ出しを極力防止
+        ctx.fillText('0 74470 56219 8', x + boxWidth / 2, y + 66);
+        ctx.restore();
+      };
+
+      // レイアウトごとの空きスペースに合わせてバーコードを配置
+      let barcodeX = 40;
+      let barcodeY = targetHeight - 105; // 縦長になった分上げる
+      if (layoutPattern === 1 || layoutPattern === 3) {
+        barcodeX = targetWidth - 145; // 105px幅+余白
+      } else if (layoutPattern === 4) {
+        barcodeX = (targetWidth / 2) - 52.5; // 中央配置
+      }
+      
+      drawBarcode(barcodeX, barcodeY);
     }
 
-  }, [originalImage, personFishImage, scale, offsetY, selectedTheme, workerStatus, imageSrc]);
+  }, [originalImage, personFishImage, scale, offsetX, offsetY, selectedTheme, workerStatus, imageSrc, magazineConfig]);
 
   useEffect(() => {
     drawCanvas();
@@ -269,7 +463,15 @@ function App() {
               ) : (
                 <div className="relative w-full h-full flex flex-col items-center justify-center animate-fade-in pointer-events-auto">
                   <div className="relative w-full flex justify-center">
-                    <canvas ref={canvasRef} className="rounded-xl drop-shadow-2xl shadow-indigo-900/20" />
+                    <canvas 
+                      ref={canvasRef} 
+                      className={`rounded-xl drop-shadow-2xl shadow-indigo-900/20 touch-none ${isDone ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                      onPointerDown={handlePointerDown}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerLeave={handlePointerUp}
+                      onPointerCancel={handlePointerUp}
+                    />
                     {isWorking && (
                       <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md rounded-xl flex flex-col items-center justify-center z-20 transition-all border border-indigo-500/30">
                         <Loader2 className="w-12 h-12 text-indigo-400 animate-spin mb-6" />
@@ -314,23 +516,23 @@ function App() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 space-y-5">
+                  <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 space-y-4">
                     <div>
                       <div className="flex justify-between text-xs font-bold text-slate-400 mb-3">
-                        <span className="flex items-center gap-1"><ZoomIn className="w-3 h-3 text-slate-500"/> サイズ</span>
+                        <span className="flex items-center gap-1"><ZoomIn className="w-3 h-3 text-slate-500"/> 人物のサイズ</span>
                         <span className="text-indigo-300">{Math.round(scale * 100)}%</span>
                       </div>
                       <input type="range" min="0.5" max="2.0" step="0.05" value={scale} onChange={(e) => setScale(parseFloat(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer hover:accent-indigo-400 transition-all outline-none" />
                     </div>
-
-                    <div>
-                      <div className="flex justify-between text-xs font-bold text-slate-400 mb-3">
-                        <span className="flex items-center gap-1"><Move className="w-3 h-3 text-slate-500"/> 上下位置</span>
-                        <span className="text-indigo-300">{offsetY > 0 ? `+${offsetY}` : offsetY}px</span>
-                      </div>
-                      <input type="range" min="-300" max="300" step="10" value={offsetY} onChange={(e) => setOffsetY(parseInt(e.target.value))} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer hover:accent-indigo-400 transition-all outline-none" />
-                    </div>
+                    
+                    <p className="text-xs text-center text-indigo-300/80 mt-2 flex items-center justify-center gap-1 font-medium bg-slate-900/50 py-2 rounded-lg">
+                      <Move className="w-4 h-4" /> 画面内の人物は直接ドラッグして移動できます
+                    </p>
                   </div>
+
+                  <button onClick={shuffleLayout} className="w-full py-4 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 text-indigo-300 font-bold transition-all flex items-center justify-center gap-2" >
+                    <Shuffle className="w-5 h-5" /> 記事とレイアウトをシャッフル
+                  </button>
 
                   <button onClick={handleDownload} className="w-full py-4 rounded-xl bg-slate-100 hover:bg-white text-slate-900 font-bold transition-all shadow-xl shadow-white/10 flex items-center justify-center gap-2" >
                     <Download className="w-5 h-5" /> 表紙画像を保存
