@@ -261,7 +261,9 @@ function App() {
     useState<HTMLImageElement | null>(null);
 
   // バーコード画像の事前読み込み
-  const [barcodeImage, setBarcodeImage] = useState<HTMLImageElement | null>(null);
+  const [barcodeImage, setBarcodeImage] = useState<HTMLImageElement | null>(
+    null,
+  );
   useEffect(() => {
     const img = new Image();
     img.onload = () => setBarcodeImage(img);
@@ -377,7 +379,11 @@ function App() {
       setProgressMsg("HEIC画像を変換中...");
       setWorkerStatus("processing");
       try {
-        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.92 });
+        const blob = await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.92,
+        });
         const jpeg = Array.isArray(blob) ? blob[0] : blob;
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -701,14 +707,13 @@ function App() {
       // [4] バーコード画像の描画
       if (barcodeImage) {
         const boxWidth = 105;
-        const boxHeight = boxWidth * (barcodeImage.naturalHeight / barcodeImage.naturalWidth);
+        const boxHeight =
+          boxWidth * (barcodeImage.naturalHeight / barcodeImage.naturalWidth);
 
         let barcodeX = 40;
         let barcodeY = targetHeight - boxHeight - 30;
-        if (layoutPattern === 1 || layoutPattern === 3) {
+        if (layoutPattern === 1 || layoutPattern === 3 || layoutPattern === 4) {
           barcodeX = targetWidth - boxWidth - 40;
-        } else if (layoutPattern === 4) {
-          barcodeX = targetWidth / 2 - boxWidth / 2;
         }
 
         ctx.save();
@@ -763,17 +768,20 @@ function App() {
       <main className="max-w-6xl mx-auto px-4 py-6 md:py-10">
         {/* アップロード前: 中央配置のアップロードエリア */}
         {!imageSrc && (
-          <div className="flex flex-col items-center justify-center animate-fade-in-up" style={{ minHeight: "calc(100vh - 120px)" }}>
+          <div className="flex flex-col items-center animate-fade-in-up">
             <label className="group relative flex flex-col items-center justify-center w-full max-w-md aspect-[3/4] rounded-2xl border-2 border-dashed border-slate-600/60 hover:border-indigo-400/50 bg-slate-800/20 hover:bg-indigo-950/20 cursor-pointer transition-all duration-300">
               <div className="flex flex-col items-center gap-4 px-6 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                   <UploadCloud className="w-8 h-8 text-indigo-400" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-white mb-1">釣果写真をアップロード</p>
-                  <p className="text-sm text-slate-500">人物入り・横持ちの写真が最適</p>
+                  <p className="text-lg font-bold text-white mb-1">
+                    釣果写真をアップロード
+                  </p>
                 </div>
-                <span className="text-xs text-slate-600 mt-2">JPG / PNG / WebP / HEIC</span>
+                <span className="text-xs text-slate-600 mt-2">
+                  JPG / PNG / WebP / HEIC
+                </span>
               </div>
               <input
                 type="file"
